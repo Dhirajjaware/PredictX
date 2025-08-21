@@ -1,4 +1,3 @@
-// import { Audio } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -12,11 +11,16 @@ import {
 export default function App() {
   const [data, setData] = useState([]);
   const [prediction, setPrediction] = useState("");
+  const [predictedColor, setPredictedColor] = useState("");
   const lastIssueRef = useRef(null);
 
   useEffect(() => {
+    // fetch once immediately
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+
+    // fetch every 1 second
+    const interval = setInterval(fetchData, 1000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -24,7 +28,8 @@ export default function App() {
     try {
       const res = await fetch(
         "https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=" +
-          Date.now()
+          Date.now(),
+        { cache: "no-store" } // no cache
       );
       const json = await res.json();
       const newList = json.data.list || [];
@@ -34,13 +39,14 @@ export default function App() {
         newList.length > 0 &&
         newList[0].issueNumber !== lastIssueRef.current
       ) {
-        playSound();
-        Vibration.vibrate(200); // small vibration on new result
+        Vibration.vibrate(200); // vibration on new result
       }
 
       if (newList.length > 0) {
         lastIssueRef.current = newList[0].issueNumber;
-        setPrediction(predictNext(newList));
+        const { sizePrediction, colorPrediction } = predictNext(newList);
+        setPrediction(sizePrediction);
+        setPredictedColor(colorPrediction);
       }
 
       setData(newList);
@@ -49,21 +55,14 @@ export default function App() {
     }
   };
 
-  const playSound = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require("./assets/notify.mp3") // add your sound file in assets
-      );
-      await sound.playAsync();
-    } catch (error) {
-      console.log("Sound error:", error);
-    }
-  };
-
   const predictNext = (list) => {
-    // simple strategy: last number >= 5 → predict "Small", else "Big"
     const lastNum = parseInt(list[0].number);
-    return lastNum >= 5 ? "Small" : "Big";
+    const sizePrediction = lastNum >= 5 ? "Small" : "Big";
+
+    const lastColor = list[0].color.split(",")[0];
+    const colorPrediction = lastColor;
+
+    return { sizePrediction, colorPrediction };
   };
 
   const renderItem = ({ item }) => {
@@ -89,6 +88,10 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>🏆 Win Go 1Min</Text>
+      </View>
+
       <View style={styles.predictionBox}>
         <Text style={styles.predictionTitle}>Next Prediction</Text>
         <Text
@@ -98,6 +101,12 @@ export default function App() {
           ]}
         >
           {prediction}
+        </Text>
+        <Text style={styles.predictedColor}>
+          🎨 Color:{" "}
+          <Text style={{ color: predictedColor === "red" ? "red" : "green" }}>
+            {predictedColor}
+          </Text>
         </Text>
       </View>
 
@@ -116,6 +125,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#1e1e2f",
     padding: 10,
   },
+  header: {
+    backgroundColor: "#f39c12",
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  headerText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+  },
   predictionBox: {
     backgroundColor: "#2c3e50",
     padding: 15,
@@ -132,6 +153,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     marginTop: 5,
+  },
+  predictedColor: {
+    fontSize: 18,
+    marginTop: 8,
+    color: "#ecf0f1",
   },
   card: {
     backgroundColor: "#2d3436",
