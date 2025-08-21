@@ -12,15 +12,14 @@ export default function App() {
   const [data, setData] = useState([]);
   const [prediction, setPrediction] = useState("");
   const [predictedColor, setPredictedColor] = useState("");
+  const [nextIssue, setNextIssue] = useState("");
+
   const lastIssueRef = useRef(null);
+  const lastPredictionRef = useRef({ size: "", color: "" });
 
   useEffect(() => {
-    // fetch once immediately
     fetchData();
-
-    // fetch every 1 second
     const interval = setInterval(fetchData, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -29,7 +28,7 @@ export default function App() {
       const res = await fetch(
         "https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=" +
           Date.now(),
-        { cache: "no-store" } // no cache
+        { cache: "no-store" }
       );
       const json = await res.json();
       const newList = json.data.list || [];
@@ -39,14 +38,27 @@ export default function App() {
         newList.length > 0 &&
         newList[0].issueNumber !== lastIssueRef.current
       ) {
-        Vibration.vibrate(200); // vibration on new result
+        Vibration.vibrate(200);
       }
 
       if (newList.length > 0) {
         lastIssueRef.current = newList[0].issueNumber;
+
+        // ✅ Generate prediction for NEXT round
         const { sizePrediction, colorPrediction } = predictNext(newList);
         setPrediction(sizePrediction);
         setPredictedColor(colorPrediction);
+
+        // ✅ Show next issue number = (last 3 digits + 1)
+        const issueStr = newList[0].issueNumber.toString();
+        const last3 = issueStr.slice(-3);
+        const next = ((parseInt(last3) + 1) % 1000).toString().padStart(3, "0");
+        setNextIssue(next);
+
+        lastPredictionRef.current = {
+          size: sizePrediction,
+          color: colorPrediction,
+        };
       }
 
       setData(newList);
@@ -58,10 +70,8 @@ export default function App() {
   const predictNext = (list) => {
     const lastNum = parseInt(list[0].number);
     const sizePrediction = lastNum >= 5 ? "Small" : "Big";
-
     const lastColor = list[0].color.split(",")[0];
     const colorPrediction = lastColor;
-
     return { sizePrediction, colorPrediction };
   };
 
@@ -71,7 +81,7 @@ export default function App() {
 
     return (
       <View style={styles.card}>
-        <Text style={styles.issue}>Issue: {item.issueNumber}</Text>
+        <Text style={styles.issue}>Period: {item.issueNumber}</Text>
         <Text style={styles.num}>🎲 Number: {item.number}</Text>
         <Text style={styles.color}>🎨 Color: {item.color}</Text>
         <Text
@@ -94,6 +104,9 @@ export default function App() {
 
       <View style={styles.predictionBox}>
         <Text style={styles.predictionTitle}>Next Prediction</Text>
+        {nextIssue ? (
+          <Text style={styles.nextIssue}>📌 Period: {nextIssue}</Text>
+        ) : null}
         <Text
           style={[
             styles.predictionText,
@@ -148,6 +161,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#ecf0f1",
+  },
+  nextIssue: {
+    fontSize: 18,
+    color: "#f1c40f",
+    marginTop: 5,
+    fontWeight: "bold",
   },
   predictionText: {
     fontSize: 28,
