@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
+
 import {
   FlatList,
-  SafeAreaView,
+  Platform,
+  StatusBar,
   StyleSheet,
   Text,
   Vibration,
@@ -44,12 +46,10 @@ export default function App() {
       if (newList.length > 0) {
         lastIssueRef.current = newList[0].issueNumber;
 
-        // ✅ Generate prediction for NEXT round
         const { sizePrediction, colorPrediction } = predictNext(newList);
         setPrediction(sizePrediction);
         setPredictedColor(colorPrediction);
 
-        // ✅ Show next issue number = (last 3 digits + 1)
         const issueStr = newList[0].issueNumber.toString();
         const last3 = issueStr.slice(-3);
         const next = ((parseInt(last3) + 1) % 1000).toString().padStart(3, "0");
@@ -97,7 +97,14 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* Make the status bar fully transparent */}
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
+
       <View style={styles.header}>
         <Text style={styles.headerText}>🏆 Win Go 1Min</Text>
       </View>
@@ -128,7 +135,7 @@ export default function App() {
         renderItem={renderItem}
         keyExtractor={(item) => item.issueNumber}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -136,7 +143,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#1e1e2f",
-    padding: 10,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
     backgroundColor: "#f39c12",
