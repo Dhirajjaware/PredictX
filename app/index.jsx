@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-
 import {
   FlatList,
   Platform,
@@ -130,6 +129,26 @@ export default function App() {
         </Text>
       </View>
 
+      {/* ✅ Added Plans Section */}
+      <View style={styles.plansContainer}>
+        <Text style={styles.plansTitle}>💎 Choose Your Plan</Text>
+
+        <View style={styles.planCard}>
+          <Text style={styles.planName}>Weekly Plan</Text>
+          <Text style={styles.planPrice}>₹100 / week</Text>
+        </View>
+
+        <View style={styles.planCard}>
+          <Text style={styles.planName}>Monthly Plan</Text>
+          <Text style={styles.planPrice}>₹300 / month</Text>
+        </View>
+
+        <View style={styles.planCard}>
+          <Text style={styles.planName}>Yearly Plan</Text>
+          <Text style={styles.planPrice}>₹2000 / year</Text>
+        </View>
+      </View>
+
       <FlatList
         data={data}
         renderItem={renderItem}
@@ -185,6 +204,39 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: "#ecf0f1",
   },
+  /* ✅ Plans Styles */
+  plansContainer: {
+    backgroundColor: "#2c3e50",
+    padding: 15,
+    borderRadius: 15,
+    marginBottom: 15,
+    alignItems: "center",
+  },
+  plansTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#f1c40f",
+    marginBottom: 10,
+  },
+  planCard: {
+    backgroundColor: "#34495e",
+    width: "90%",
+    padding: 15,
+    marginVertical: 6,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  planName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ecf0f1",
+  },
+  planPrice: {
+    fontSize: 16,
+    color: "#1abc9c",
+    marginTop: 4,
+  },
+  /* ✅ List Card Styles */
   card: {
     backgroundColor: "#2d3436",
     padding: 15,
