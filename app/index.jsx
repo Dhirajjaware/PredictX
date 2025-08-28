@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   FlatList,
   Platform,
   StatusBar,
@@ -14,15 +15,50 @@ export default function App() {
   const [prediction, setPrediction] = useState("");
   const [predictedColor, setPredictedColor] = useState("");
   const [nextIssue, setNextIssue] = useState("");
+  const [timer, setTimer] = useState(60);
 
   const lastIssueRef = useRef(null);
   const lastPredictionRef = useRef({ size: "", color: "" });
 
+  // Animation ref
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Initial fetch
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 1000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Countdown timer linked with fetch
+  useEffect(() => {
+    const countdown = setInterval(() => {
+      setTimer((prev) => {
+        if (prev === 1) {
+          fetchData(); // fetch only when timer resets
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(countdown);
+  }, []);
+
+  // Animate when under 10s
+  useEffect(() => {
+    if (timer <= 10) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.3,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [timer]);
 
   const fetchData = async () => {
     try {
@@ -68,7 +104,7 @@ export default function App() {
 
   const predictNext = (list) => {
     const lastNum = parseInt(list[0].number);
-    const sizePrediction = lastNum >= 5 ? "Small" : "Big";
+    const sizePrediction = lastNum >= 5 ? "Big" : "Small";
     const lastColor = list[0].color.split(",")[0];
     const colorPrediction = lastColor;
     return { sizePrediction, colorPrediction };
@@ -79,17 +115,19 @@ export default function App() {
     const pattern = num >= 5 ? "Big" : "Small";
 
     return (
-      <View style={styles.card}>
-        <Text style={styles.issue}>Period: {item.issueNumber}</Text>
-        <Text style={styles.num}>🎲 Number: {item.number}</Text>
-        <Text style={styles.color}>🎨 Color: {item.color}</Text>
+      <View style={styles.rowCard}>
+        <Text style={styles.periodCell}>{item.issueNumber}</Text>
+        <Text style={[styles.bigCell, { color: num >= 5 ? "green" : "red" }]}>
+          {item.number}
+        </Text>
+        <Text style={styles.bigCell}>{pattern}</Text>
         <Text
           style={[
-            styles.pattern,
-            { color: pattern === "Big" ? "#e74c3c" : "#3498db" },
+            styles.bigCell,
+            { color: item.color === "red" ? "red" : "green" },
           ]}
         >
-          🔮 Pattern: {pattern}
+          ●
         </Text>
       </View>
     );
@@ -97,7 +135,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      {/* Make the status bar fully transparent */}
+      {/* Transparent status bar */}
       <StatusBar
         translucent
         backgroundColor="transparent"
@@ -108,6 +146,7 @@ export default function App() {
         <Text style={styles.headerText}>🏆 Win Go 1Min</Text>
       </View>
 
+      {/* Prediction Box with Timer inside */}
       <View style={styles.predictionBox}>
         <Text style={styles.predictionTitle}>Next Prediction</Text>
         {nextIssue ? (
@@ -127,28 +166,40 @@ export default function App() {
             {predictedColor}
           </Text>
         </Text>
+
+        {/* Animated Timer (moved inside) */}
+        <Animated.Text
+          style={[
+            styles.timerText,
+            {
+              transform: [{ scale: scaleAnim }],
+              color: timer <= 10 ? "red" : "#2ecc71",
+            },
+          ]}
+        >
+          ⏳ {timer}s
+        </Animated.Text>
       </View>
 
-      {/* ✅ Added Plans Section */}
-      <View style={styles.plansContainer}>
-        <Text style={styles.plansTitle}>💎 Choose Your Plan</Text>
-
-        <View style={styles.planCard}>
-          <Text style={styles.planName}>Weekly Plan</Text>
-          <Text style={styles.planPrice}>₹100 / week</Text>
-        </View>
-
-        <View style={styles.planCard}>
-          <Text style={styles.planName}>Monthly Plan</Text>
-          <Text style={styles.planPrice}>₹300 / month</Text>
-        </View>
-
-        <View style={styles.planCard}>
-          <Text style={styles.planName}>Yearly Plan</Text>
-          <Text style={styles.planPrice}>₹2000 / year</Text>
-        </View>
+      {/* Table Header */}
+      <View style={[styles.rowCard, { backgroundColor: "#c0392b" }]}>
+        <Text
+          style={[styles.periodCell, { color: "#fff", fontWeight: "bold" }]}
+        >
+          Period
+        </Text>
+        <Text style={[styles.bigCell, { color: "#fff", fontWeight: "bold" }]}>
+          Number
+        </Text>
+        <Text style={[styles.bigCell, { color: "#fff", fontWeight: "bold" }]}>
+          Big Small
+        </Text>
+        <Text style={[styles.bigCell, { color: "#fff", fontWeight: "bold" }]}>
+          Color
+        </Text>
       </View>
 
+      {/* List */}
       <FlatList
         data={data}
         renderItem={renderItem}
@@ -204,63 +255,32 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: "#ecf0f1",
   },
-  /* ✅ Plans Styles */
-  plansContainer: {
-    backgroundColor: "#2c3e50",
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 15,
-    alignItems: "center",
-  },
-  plansTitle: {
-    fontSize: 20,
+  timerText: {
+    fontSize: 26,
     fontWeight: "bold",
-    color: "#f1c40f",
-    marginBottom: 10,
+    marginTop: 10,
   },
-  planCard: {
-    backgroundColor: "#34495e",
-    width: "90%",
-    padding: 15,
-    marginVertical: 6,
-    borderRadius: 12,
-    alignItems: "center",
+  /* ✅ Table Row Styles */
+  rowCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderColor: "#444",
+    backgroundColor: "#2d3436",
   },
-  planName: {
+  periodCell: {
+    flex: 1.6,
+    textAlign: "center",
+    color: "#ecf0f1",
+    fontSize: 12,
+  },
+  bigCell: {
+    flex: 1,
+    textAlign: "center",
+    color: "#ecf0f1",
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ecf0f1",
-  },
-  planPrice: {
-    fontSize: 16,
-    color: "#1abc9c",
-    marginTop: 4,
-  },
-  /* ✅ List Card Styles */
-  card: {
-    backgroundColor: "#2d3436",
-    padding: 15,
-    marginVertical: 6,
-    borderRadius: 12,
-    elevation: 3,
-  },
-  issue: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#f1c40f",
-  },
-  num: {
-    fontSize: 16,
-    color: "#ecf0f1",
-    marginTop: 4,
-  },
-  color: {
-    fontSize: 14,
-    color: "#bdc3c7",
-  },
-  pattern: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 6,
   },
 });
